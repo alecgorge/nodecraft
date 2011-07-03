@@ -19,13 +19,20 @@ Packet.prototype.needs = function (nBytes) {
 }
 
 var packString = function (str) {
-	if (!(str instanceof Buffer)) str = new Buffer(str);
-	return concat(makers['short'](str.length), str);
+	var buf = new Buffer(str.length * 2);
+	for (var i = 0; i < str.length; i++){
+		makers['short'](str.charCodeAt(i)).copy(buf, i * 2);
+	}
+	return concat(makers['short'](str.length), buf);
 }
 var unpackString = function (pkt) {
-	var len = parsers.short(pkt);
+	var len = parsers.short(pkt) * 2;
 	pkt.needs(len);
-	var str = pkt.data.slice(pkt.cursor, pkt.cursor + len).toString('utf8');
+	var buffer = pkt.data.slice(pkt.cursor, pkt.cursor + len);
+	var str = "";
+	for(var i = 0; i < buffer.length; i+=2){
+		str+= String.fromCharCode((buffer[i]<<8) + buffer[i+1]);
+	}
 	pkt.cursor += len;
 	return str;
 }
@@ -213,7 +220,7 @@ var clientPacketStructure = {
 
 var serverPacketStructure = {
 	0x00: [],
-	0x01: [int('playerID'), str('serverName'), str('motd'), long("mapSeed"), byte('dimension')],
+	0x01: [int('playerID'), str('serverName'), long("mapSeed"), byte('dimension')],
 	0x02: [str('serverID')],
 	0x03: [str('message')],
 	0x04: [long('time')],
