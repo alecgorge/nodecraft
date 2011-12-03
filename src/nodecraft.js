@@ -1,13 +1,8 @@
-(function () {
-	var path = require('path');
-	var lib_path = path.join(path.dirname(process.argv[1]), '..', 'lib');
-	require.paths.push(path.normalize(lib_path));
-})();
 
-var sys = require('sys'),
+var sys = require('util'),
 	net = require('net'),
 	colors = require('colors'),
-	zip = require('compress'),
+	zip = require('zlib'),
 	fs = require('fs'),
 	ps = require('./protocol'),
 	chunk = require('./chunk'),
@@ -59,7 +54,10 @@ function handshake(session, pkt) {
 
 function composeTerrainPacket(cb, session, x, z) {
 	var zippedChunk = new Buffer(0);
-	var gzip = new zip.GzipStream(zip.Z_DEFAULT_COMPRESSION, zip.MAX_WBITS);
+	var gzip = zip.createDeflate({
+		level: zip.Z_DEFAULT_COMPRESSION,
+		windowBits: zip.MAX_WBITS
+	});
 	gzip.on('data', function (data) {
 		zippedChunk = concat(zippedChunk, data);
 	}).on('error', function (err) {
@@ -83,23 +81,25 @@ function composeTerrainPacket(cb, session, x, z) {
 
 	session.world.terrain.getChunk(x, z, function (chunk_data) {
 		gzip.write(chunk_data.data);
-		gzip.close();
+		gzip.end();
 	});
 }
 
 function login(session, pkt) {
-	sys.print("Protocol version: " + pkt.protoVer + "\nUsername: " + pkt.username + "\nPassword: " + pkt.password + "\n");
+	sys.print("Protocol version: " + pkt.protoVer + "\nUsername: " + pkt.username + "\n");
 
-	session.username = pkt.username;
-	session.password = pkt.password; /* TODO: Add whitelist check here */
+	session.username = pkt.username; /* TODO: Add whitelist check here */
 
 	session.stream.write(ps.makePacket({
 		type: 0x01,
 		playerID: 0x0,
 		serverName: '',
-		motd: '',
 		mapSeed: 0,
-		dimension: 0
+		serverMode: 0, //TODO: Survival vs Creative
+		dimension: 0,
+		difficulty: 0, 
+		height: 128, 
+		slots: 50 //TODO: Limit amount of players
 	}));
 	session.stream.write(ps.makePacket({
 		type: 0x06,
@@ -243,7 +243,7 @@ var spawn_for_harvest = {
 
 
 function blockdig(session, pkt) {
-	if (pkt.status == 0x3) {
+	if (pkt.status == 0x2) {
 		terrainmodsdebug("Received packet: " + sys.inspect(pkt));
 
 		/* Get the type that was there */
@@ -271,12 +271,13 @@ function blockdig(session, pkt) {
 					type: 0x15,
 					uid: newEntity.uid,
 					item: newEntity.type,
+					amount: 1,
+					life: 0, //TODO: damage
 					x: newEntity.x,
 					y: newEntity.y,
 					z: newEntity.z,
 					rotation: newEntity.rotation,
 					pitch: newEntity.pitch,
-					unk: 1,
 					hvel: newEntity.velocity
 				}));
 			}
@@ -382,12 +383,12 @@ function checkEntities(session, x, y, z) {
 		}));
 
 		// Push the packet to the client's inventory
-		session.stream.write(ps.makePacket({
+		/*session.stream.write(ps.makePacket({
 			type: 0x11,
 			item: item.type,
 			amount: 1,
 			life: 0
-		}));
+		}));*/
 
 /* TODO - also should be done by something listening on the EntityTracker - destruction of an item
 		 * on the server should push the notification to affected clients automatically, without having to do it in every case
@@ -413,12 +414,12 @@ function playerpos(session, pkt) {
 function grantID(session, type, count) {
 	if (typeof(count) == undefined) count = 1;
 
-	session.stream.write(ps.makePacket({
+	/*session.stream.write(ps.makePacket({
 		type: 0x11,
 		item: type,
 		amount: count,
 		life: 0
-	}));
+	}));*/
 }
 
 function chat(session, pkt) {
@@ -433,6 +434,14 @@ function chat(session, pkt) {
 		}
 		grantID(session, item, count);
 	}
+}
+
+function serverlistping(session, pkt) {
+	session.stream.end(ps.makePacket({
+		type: 0xff, 
+		message: "A Nodecraft Server§0§20" //TODO: An actual MOTD
+	}));
+	session.closed = true;
 }
 
 function disconnect(session, pkt) {
@@ -450,6 +459,7 @@ var packets = {
 	0x0d: moveandlook,
 	0x0e: blockdig,
 	0x0f: blockplace,
+	0xfe: serverlistping,
 	0xff: disconnect
 };
 
@@ -548,7 +558,7 @@ var server = net.createServer(function (stream) {
 try {
 	var cfg = String(fs.readFileSync("packet_masks")).split('\n')
 } catch (err) {
-	if (err.errno == 2) cfg = [];
+	if (true || err.errno == 2) cfg = [];
 	else
 	throw err;
 }

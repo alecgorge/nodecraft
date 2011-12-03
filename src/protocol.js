@@ -1,4 +1,4 @@
-var sys = require('sys');
+var sys = require('util');
 var pack = require('jspack').jspack;
 
 function concat(buf1, buf2) {
@@ -197,8 +197,8 @@ function blockarr(name) {
 }
 
 var clientPacketStructure = {
-	0x00: [],
-	0x01: [int('protoVer'), str('username'), str('password')],
+	0x00: [int('pingID')],
+	0x01: [int('protoVer'), str('username'), long('mapSeed'), int('serverMode'), byte('dimension'), byte('difficulty'), byte('height'), byte('slots')],
 	0x02: [str('username')],
 	0x03: [str('message')],
 	// 0x05: [int('invType'), items('items')],
@@ -212,15 +212,16 @@ var clientPacketStructure = {
 	0x0f: [short('item'), int('x'), byte('y'), int('z'), byte('face')],
 	0x10: [int('uid'), short('item')],
 	0x12: [int('uid'), byte('unk')],
-	0x15: [int('uid'), short('item'), byte('unk'), int('x'), int('y'), int('z'), byte('rotation'), byte('pitch'), byte('hvel')],
+	0x15: [int('uid'), short('item'), byte('amount'), short('life'), int('x'), int('y'), int('z'), byte('rotation'), byte('pitch'), byte('hvel')],
 	// Hvel is horizontal velocity [undoc'ed on wiki]
+	0xfe: [],
 	0xff: [str('message')],
 	// disconnect
 }
 
 var serverPacketStructure = {
-	0x00: [],
-	0x01: [int('playerID'), str('serverName'), long("mapSeed"), byte('dimension')],
+	0x00: [int('pingID')],
+	0x01: [int('playerID'), str('serverName'), long('mapSeed'), int('serverMode'), byte('dimension'), byte('difficulty'), byte('height'), byte('slots')],
 	0x02: [str('serverID')],
 	0x03: [str('message')],
 	0x04: [long('time')],
@@ -231,10 +232,10 @@ var serverPacketStructure = {
 	//0x0e: [byte('status'), int('x'), byte('y'), int('z'), byte('face')],
 	//0x0f: [short('id'), int('x'), byte('y'), int('z'), byte('direction')],
 	0x10: [int('uid'), short('item')],
-	0x11: [short('item'), byte('amount'), short('life')],
+	//0x11: [short('item'), byte('amount'), short('life')],
 	0x12: [int('uid'), byte('unk')],
 	0x14: [int('uid'), str('playerName'), int('x'), int('y'), int('z'), byte('rotation'), byte('pitch'), short('curItem')],
-	0x15: [int('uid'), short('item'), byte('unk'), int('x'), int('y'), int('z'), byte('rotation'), byte('pitch'), byte('hvel')],
+	0x15: [int('uid'), short('item'), byte('amount'), short('life'), int('x'), int('y'), int('z'), byte('rotation'), byte('pitch'), byte('hvel')],
 	// Hvel is horizontal velocity [undoc'ed on wiki]
 	0x16: [int('collectedID'), int('collectorID')],
 	0x17: [int('uid'), byte('objType'), int('x'), int('y'), int('z')],
@@ -273,7 +274,7 @@ var packetNames = {
 	0x0e: 'DIG_BLOCK',
 	0x0f: 'PLACE_BLOCK',
 	0x10: 'WIELD',
-	0x11: 'ADD_TO_INVENTORY',
+	//0x11: 'ADD_TO_INVENTORY',
 	0x12: 'ARM_ANIM',
 	0x14: 'PLAYER_SPAWN',
 	0x15: 'PICKUP_SPAWN',
@@ -291,6 +292,7 @@ var packetNames = {
 	0x34: 'MULTI_BLOCK_CHANGE',
 	0x35: 'BLOCK_CHANGE',
 	0x3b: 'NBT_ENTITY',
+	0xfe: 'SERVER_LIST_PING',
 	0xff: 'DISCONNECT',
 }
 
