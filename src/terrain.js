@@ -1,6 +1,8 @@
 var chunk = require('./chunk');
 var sys = require('util');
 
+var floodMessages = false;
+
 function WorldTerrain() {
 	this.chunk_xz_granularity = 16;
 
@@ -130,7 +132,9 @@ WorldTerrain.prototype.recalculateLighting = function (x, z, cb) {
 	var x_i = x >> me.chunk_xz_shift,
 		z_i = z >> me.chunk_xz_shift;
 
-	sys.debug("light for " + x + "," + z);
+	if(floodMessages) {
+		sys.debug("light for " + x + "," + z);
+	}
 
 	// make sure all the terrain is loaded around x_i,y_i.
 	asyncMap(function (d, cb) {
@@ -200,7 +204,10 @@ WorldTerrain.prototype.recalculateLighting = function (x, z, cb) {
 				}
 			}
 		}
-		sys.debug("flooded: " + numFlooded);
+		
+		if(floodMessages) {
+			sys.debug("flooded: " + numFlooded);
+		}
 
 		dchunk(0, 0).lit = 2;
 

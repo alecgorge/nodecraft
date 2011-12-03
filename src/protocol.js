@@ -253,6 +253,7 @@ var serverPacketStructure = {
 	0x34: [int('x'), int('z'), multiblock('blocks')],
 	// multi block change
 	0x35: [int('x'), byte('y'), int('z'), byte('blockType'), byte('blockMetadata')],
+	0x68: [byte('windowId'), short('count'), intstr('blocks')],
 	0x3b: [int('x'), short('y'), int('z'), str('nbt')],
 	0xff: [str('message')],
 	// disconnect
@@ -292,6 +293,7 @@ var packetNames = {
 	0x34: 'MULTI_BLOCK_CHANGE',
 	0x35: 'BLOCK_CHANGE',
 	0x3b: 'NBT_ENTITY',
+	0x68: 'WINDOW_ITEMS',
 	0xfe: 'SERVER_LIST_PING',
 	0xff: 'DISCONNECT',
 }

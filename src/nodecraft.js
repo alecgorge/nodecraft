@@ -208,38 +208,22 @@ function login(session, pkt) {
 }
 
 var spawn_for_harvest = {
-	1: 4,
-	// Stone -> cobblestone
-	2: 3,
-	// Grass -> dirt
-	3: 3,
-	// Dirt  -> dirt
-	4: 4,
-	// Cobblestone -> cobblestone
-	5: 5,
-	// Wood -> Wood
-	6: 6,
-	// Sapling->Sapling
-	12: 12,
-	// Sand->Sand
-	13: 13,
-	// Gravel->Gravel
-	14: 14,
-	// Gold Ore->Gold Ore
-	15: 15,
-	// Iron Ore->Iron Ore
-	16: 263,
-	// Coal Ore -> Coal
-	17: 17,
-	// Logs -> Logs
-	37: 37,
-	// Flower->Flower
-	38: 38,
-	// Flower->Flower
-	39: 39,
-	// Mushroom->Mushroom
-	40: 40,
-	// Mushroom->Mushroom
+	1: 4, // Stone -> cobblestone
+	2: 3, // Grass -> dirt
+	3: 3, // Dirt  -> dirt
+	4: 4, // Cobblestone -> cobblestone
+	5: 5, // Wood -> Wood
+	6: 6, // Sapling->Sapling
+	12: 12, // Sand->Sand
+	13: 13, // Gravel->Gravel
+	14: 14, // Gold Ore->Gold Ore
+	15: 15, // Iron Ore->Iron Ore
+	16: 263, // Coal Ore -> Coal
+	17: 17, // Logs -> Logs
+	37: 37, // Flower->Flower
+	38: 38, // Flower->Flower
+	39: 39, // Mushroom->Mushroom
+	40: 40, // Mushroom->Mushroom
 };
 
 
@@ -373,7 +357,8 @@ function blockplace(session, pkt) {
 function flying(session, pkt) {}
 
 function checkEntities(session, x, y, z) {
-	var pickups = session.world.entities.findPickups(x * 32, y * 32, z * 32);
+	var pickups = session.world.entities.findPickups(x * 32, y * 32, z * 32)
+		blockBuffer = new Buffer(5 * pickups.length);
 
 	for (var i = 0; i < pickups.length; i++) {
 		var item = pickups[i]; /* TODO - this should be done by something listening on the EntityTracker */
@@ -382,16 +367,15 @@ function checkEntities(session, x, y, z) {
 			collectedID: item.uid,
 			collectorID: session.uid
 		}));
+		
+		// this buffer is formatted like this: http://mc.kev009.com/Slot_Data
+		var pos = 5 * i;
+		blockBuffer.writeInt16LE(item.type, pos, true); // the type
+		blockBuffer.writeInt8(1, pos + 2, true); // where is quantity stored?
+		blockBuffer.writeInt16LE(0, pos + 3, true); // damage/block metadata
+		//blockBuffer.writeInt16LE(-1, pos + 5, true); // no further data
 
-		// Push the packet to the client's inventory
-		/*session.stream.write(ps.makePacket({
-			type: 0x11,
-			item: item.type,
-			amount: 1,
-			life: 0
-		}));*/
-
-/* TODO - also should be done by something listening on the EntityTracker - destruction of an item
+		/* TODO - also should be done by something listening on the EntityTracker - destruction of an item
 		 * on the server should push the notification to affected clients automatically, without having to do it in every case
 		 * */
 		session.stream.write(ps.makePacket({
@@ -400,7 +384,16 @@ function checkEntities(session, x, y, z) {
 		}));
 
 		session.world.entities.destroyEntity(item.uid);
-
+	}
+	
+	if(pickups.length > 0) {
+		// Push the packet to the client's inventory
+		// all at once for efficency. no need for a separate packet for each item.
+		session.stream.write(ps.makePacket({
+			type: 0x68,
+			count: pickups.length,
+			blocks: blockBuffer
+		}));	
 	}
 }
 
