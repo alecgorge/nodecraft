@@ -15,6 +15,7 @@ var sys = require('util'),
 var enableProtocolDebug = 1;
 var enableChunkPreDebug = 0;
 var enableTerrainModsDebug = 0;
+var hideCommonPackets = true;
 
 
 function protodebug() {
@@ -439,7 +440,7 @@ function chat(session, pkt) {
 function serverlistping(session, pkt) {
 	session.stream.end(ps.makePacket({
 		type: 0xff, 
-		message: "A Nodecraft Server搂0搂20" //TODO: An actual MOTD
+		message: "A Nodecraft Server񖶆0" //TODO: An actual MOTD
 	}));
 	session.closed = true;
 }
@@ -502,7 +503,9 @@ var server = net.createServer(function (stream) {
 			var pkt = ps.parsePacketWith(arguments[0], ps.serverPacketStructure);
 
 			if (!masks[pkt.type]) {
-				protodebug(('Server sent ' + ('0x' + pkt.type.toString(16) + ' ' + ps.packetNames[pkt.type]).bold + ': ' + sys.inspect(pkt)).green);
+				if(hideCommonPackets && pkt.type != 51) {
+					protodebug(('Server sent ' + ('0x' + pkt.type.toString(16) + ' ' + ps.packetNames[pkt.type]).bold + ': ' + sys.inspect(pkt)).green);
+				}
 			}
 			f.apply(stream, arguments);
 		}
@@ -528,7 +531,9 @@ var server = net.createServer(function (stream) {
 				//sys.debug("parsing: " + sys.inspect(allData));
 				var pkt = ps.parsePacket(allData);
 
-				if (!masks[pkt.type]) protodebug(('Client sent ' + ('0x' + pkt.type.toString(16) + ' ' + ps.packetNames[pkt.type]).bold + ': ' + sys.inspect(pkt)).cyan);
+				if (!masks[pkt.type] && (hideCommonPackets && pkt.type != 13 && pkt.type != 11 && pkt.type != 12 && pkt.type != 10)) {
+					protodebug(('Client sent ' + ('0x' + pkt.type.toString(16) + ' ' + ps.packetNames[pkt.type]).bold + ': ' + sys.inspect(pkt)).cyan);
+				}
 				if (packets[pkt.type]) {
 					packets[pkt.type](clientsession, pkt);
 				} else {
