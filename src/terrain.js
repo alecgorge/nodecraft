@@ -1,5 +1,5 @@
 var chunk = require('./chunk');
-var sys = require('sys');
+var sys = require('util');
 
 function WorldTerrain() {
 	this.chunk_xz_granularity = 16;
