@@ -1,13 +1,8 @@
-(function () {
-	var path = require('path');
-	var lib_path = path.join(path.dirname(process.argv[1]), '..', 'lib');
-	require.paths.push(path.normalize(lib_path));
-})();
 
-var sys = require('sys'),
+var sys = require('util'),
 	net = require('net'),
 	colors = require('colors'),
-	zip = require('compress'),
+	zip = require('zlib'),
 	fs = require('fs'),
 	ps = require('./protocol'),
 	chunk = require('./chunk'),
@@ -548,7 +543,7 @@ var server = net.createServer(function (stream) {
 try {
 	var cfg = String(fs.readFileSync("packet_masks")).split('\n')
 } catch (err) {
-	if (err.errno == 2) cfg = [];
+	if (true || err.errno == 2) cfg = [];
 	else
 	throw err;
 }

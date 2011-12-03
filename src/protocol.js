@@ -1,4 +1,4 @@
-var sys = require('sys');
+var sys = require('util');
 var pack = require('jspack').jspack;
 
 function concat(buf1, buf2) {
