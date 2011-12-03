@@ -54,7 +54,10 @@ function handshake(session, pkt) {
 
 function composeTerrainPacket(cb, session, x, z) {
 	var zippedChunk = new Buffer(0);
-	var gzip = new zip.GzipStream(zip.Z_DEFAULT_COMPRESSION, zip.MAX_WBITS);
+	var gzip = zip.createDeflate({
+		level: zip.Z_DEFAULT_COMPRESSION,
+		windowBits: zip.MAX_WBITS
+	});
 	gzip.on('data', function (data) {
 		zippedChunk = concat(zippedChunk, data);
 	}).on('error', function (err) {
@@ -78,7 +81,7 @@ function composeTerrainPacket(cb, session, x, z) {
 
 	session.world.terrain.getChunk(x, z, function (chunk_data) {
 		gzip.write(chunk_data.data);
-		gzip.close();
+		gzip.end();
 	});
 }
 
