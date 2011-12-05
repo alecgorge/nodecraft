@@ -358,7 +358,7 @@ function flying(session, pkt) {}
 
 function checkEntities(session, x, y, z) {
 	var pickups = session.world.entities.findPickups(x * 32, y * 32, z * 32)
-		blockBuffer = new Buffer(5 * pickups.length);
+		blockBuffer = new Buffer(7 * pickups.length);
 
 	for (var i = 0; i < pickups.length; i++) {
 		var item = pickups[i]; /* TODO - this should be done by something listening on the EntityTracker */
@@ -369,11 +369,11 @@ function checkEntities(session, x, y, z) {
 		}));
 		
 		// this buffer is formatted like this: http://mc.kev009.com/Slot_Data
-		var pos = 5 * i;
-		blockBuffer.writeInt16LE(item.type, pos, true); // the type
+		var pos = 7 * i;
+		blockBuffer.writeInt16BE(item.type, pos, true); // the type
 		blockBuffer.writeInt8(1, pos + 2, true); // where is quantity stored?
-		blockBuffer.writeInt16LE(0, pos + 3, true); // damage/block metadata
-		//blockBuffer.writeInt16LE(-1, pos + 5, true); // no further data
+		blockBuffer.writeInt16BE(0, pos + 3, true); // damage/block metadata
+		blockBuffer.writeInt16BE(-1, pos + 5, true); // no further data
 
 		/* TODO - also should be done by something listening on the EntityTracker - destruction of an item
 		 * on the server should push the notification to affected clients automatically, without having to do it in every case
